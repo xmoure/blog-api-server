@@ -13,10 +13,13 @@ dotenv.config();
 
 const app = express();
 app.use(cors({
-    origin: process.env.CLIENT_URL || "*",
+    origin: process.env.CLIENT_URL?.replace(/\/$/, "") || "*", // Removes trailing slash if present
     methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
-    credentials: true
+    credentials: true,
+    allowedHeaders: ["Content-Type", "Authorization"], // Explicitly allow headers
+    optionsSuccessStatus: 204 // Handles preflight requests correctly
 }));
+
 
 app.use(clerkMiddleware());
 app.use("/webhooks", webhookRouter);
