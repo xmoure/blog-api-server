@@ -1,6 +1,13 @@
 import ImageKit from "imagekit";
 import postModel from "../models/post.model.js";
 import userModel from "../models/user.model.js";
+import createDOMPurify from "dompurify";
+import { JSDOM } from "jsdom"
+import sanitizeHtml from "sanitize-html";
+
+// Create a DOMPurify instance using JSDOM
+const window = new JSDOM("").window;
+const DOMPurify = createDOMPurify(window);
 
 export const getPosts = async (req, res) => {
   const page = parseInt(req.query.page) || 1;
@@ -10,12 +17,13 @@ export const getPosts = async (req, res) => {
   const category = req.query.cat;
   const author = req.query.author;
   const searchQuery = req.query.search;
-  const featured = req.query.features;
-  const sortQuery = req.query.featured;
+  const featured = req.query.featured;
+  const sortQuery = req.query.sort;
 
-  if (category) {
-    query.category = cat;
+  if (category && category !== "general") {
+    query.category = category;
   }
+
   if (searchQuery) {
     query.title = { $regex: searchQuery, $options: "i" };
   }
@@ -71,6 +79,11 @@ export const getPost = async (req, res) => {
   const post = await postModel
     .findOne({ slug: req.params.slug })
     .populate("user", "userName img");
+  if (!post) {
+    return res.status(404).json("Post not found");
+  }
+  // Sanitize again before sending to frontend
+  post.content = DOMPurify.sanitize(post.content);
   res.status(200).json(post);
 };
 
@@ -84,7 +97,18 @@ export const createPost = async (req, res) => {
     return res.status(404).json("User not found");
   }
 
-  let slug = req.body.title
+  //Sanitize the title to remove any HTML tags
+  const sanitizedTitle = sanitizeHtml(req.body.title, {
+    allowedTags: [], // No HTML allowed
+    allowedAttributes: {}, // No attributes allowed
+  }).trim();
+
+  const sanitizedDescription = sanitizeHtml(req.body.description, {
+    allowedTags: [], // No HTML allowed
+    allowedAttributes: {}, // No attributes allowed
+  }).trim();
+
+  let slug = sanitizedTitle
     .trim()
     .toLowerCase()
     .replace(/[^a-z0-9\s-]/g, "") // Remove special characters
@@ -97,8 +121,19 @@ export const createPost = async (req, res) => {
     counter++;
   }
 
-  const newPost = new postModel({ user: user._id, slug, ...req.body });
-  console.log("new post", newPost);
+  /* const sanitizedContent = DOMPurify.sanitize(req.body.content); */
+
+  const newPost = new postModel({
+    user: user._id,
+    slug,
+    title: sanitizedTitle,
+    content: req.body.content,
+    category: req.body.category,
+    description: sanitizedDescription,
+    img: req.body.img,
+  });
+
+  //const newPost = new postModel({ user: user._id, slug, ...req.body });
   const post = await newPost.save();
   res.status(200).json(post);
 };

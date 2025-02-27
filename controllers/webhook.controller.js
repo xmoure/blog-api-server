@@ -17,15 +17,10 @@ export const clerkWebhook = async (req, res) => {
   try {
     evt = wh.verify(payload, headers);
   } catch (error) {
-    res.status(400).json({
+    return res.status(400).json({
       message: "Webhook verification failed.",
     });
   }
-
-  console.log(" ver", evt);
-  console.log("data", evt.data);
-
-  console.log("Extracted Username:", evt.data.username);
 
   if (evt.type === "user.created") {
     const username =
@@ -36,7 +31,7 @@ export const clerkWebhook = async (req, res) => {
       clerkUserId: evt.data.id,
       userName: username,
       email: evt.data.email_addresses[0].email_address,
-      img: evt.data.profile_img_url,
+      img: evt.data.image_url || evt.data.profile_img_url,
     });
 
     await newUser.save();
@@ -49,6 +44,20 @@ export const clerkWebhook = async (req, res) => {
     if (deletedUser) {
       await Post.deleteMany({ user: deletedUser._id });
       await Comment.deleteMany({ user: deletedUser._id });
+    }
+  }
+
+  if (evt.type === "user.updated") {
+    const user = await User.findOne({clerkUserId: evt.data.id })
+    if(user){
+      user.img = evt.data.image_url || evt.data.profile_img_url;
+      user.email = evt.data.email_addresses[0].email_address;
+      const username =
+      evt.data.username && evt.data.username.trim() !== ""
+        ? evt.data.username
+        : evt.data.email_addresses[0].email_address;
+      user.userName = username;
+      user.save();
     }
   }
 

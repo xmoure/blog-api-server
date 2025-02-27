@@ -1,5 +1,6 @@
 import commentModel from "../models/comment.model.js";
 import userModel from "../models/user.model.js";
+import sanitizeHtml from "sanitize-html";
 
 export const getPostComments = async (req, res) => {
   const comment = await commentModel
@@ -21,8 +22,18 @@ export const addComment = async (req, res) => {
   }
 
   const user = await userModel.findOne({ clerkUserId });
+  const sanitizedDescription = sanitizeHtml(req.body.description, {
+    allowedTags: [],
+    allowedAttributes: {},
+  }).trim();
+
+  if (!sanitizedDescription) {
+    return res
+      .status(400)
+      .json("Comment cannot be empty or contain invalid content.");
+  }
   const newComment = new commentModel({
-    ...req.body,
+    description: sanitizedDescription,
     user: user._id,
     post: postId,
   });
