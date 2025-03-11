@@ -1,7 +1,8 @@
-- Simple Blog project to write blog posts. Add comments and delete comments.
-- Authentication with [Clerk](https://clerk.com)
-- Backend [here](https://github.com/xmoure/blog-api-server)
+# Simple Blog project BACKEND
 
-  
-- Deployed in Vercel
-- [Live DEMO](https://react-blog-frontend-beryl.vercel.app)
+- Created using Express.
+- MongoDB
+- Simple Blog project to write blog posts. Add comments and delete comments.
+- Frontend [HERE] (https://github.com/xmoure/react-blog-frontend)
+- Deployed on free tier of [Render](https://render.com)
+- [Live app DEMO](https://react-blog-frontend-beryl.vercel.app)
